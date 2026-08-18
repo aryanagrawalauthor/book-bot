@@ -1,0 +1,31 @@
+name: Post to Buffer
+
+on:
+  schedule:
+    - cron: "0 9 * * *"   # 9:00 AM UTC daily — adjust as you like
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install requests
+
+      - run: python scripts/post_to_buffer.py
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_PROFILE_ID: ${{ secrets.BUFFER_PROFILE_ID }}
+
+      - name: Commit updated state
+        run: |
+          git config user.name "book-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add .posted_state.json
+          git commit -m "Update posted state" || echo "No changes"
+          git push
