@@ -6,9 +6,9 @@ Posts one quote-poster to Instagram via Buffer's CURRENT GraphQL API.
 Reads a manifest.json (list of {image_url, caption}) and a state file
 (posted_index.txt) to know which quote to post next each time this runs.
 
-Required GitHub Actions secret: BUFFER_API_KEY
-  -> Repo Settings > Secrets and variables > Actions > New repository secret
-  -> Name: BUFFER_API_KEY   Value: (your Buffer personal API key)
+Required GitHub Actions secret: MY_BOOK_API_KEY
+  -> Repo Settings > Secrets and variables > Actions
+  -> Confirm MY_BOOK_API_KEY is listed there with your Buffer personal API key as the value.
   Never hardcode the key in this file or commit it to the repo.
 """
 import os
@@ -18,10 +18,12 @@ import requests
 
 API_URL = "https://api.buffer.com"
 ORGANIZATION_ID = "6a8458d6c58a52fcf4e3ba30"   # "My Organization"
-CHANNEL_ID = "6a845c4accaf649a67cbe826"        # Instagram: aryn.agrawal
+# Channel ID comes from the BUFFER_CHANNEL_ID secret (set in the workflow env).
+# Falls back to your Instagram channel (aryn.agrawal) if that secret isn't set.
+CHANNEL_ID = os.environ.get("BUFFER_CHANNEL_ID", "6a845c4accaf649a67cbe826")
 
-MANIFEST_PATH = "manifest.json"       # [{ "image_url": "...", "caption": "..." }, ...]
-STATE_PATH = "posted_index.txt"       # stores index of next quote to post
+MANIFEST_PATH = "manifest.json"        # [{ "image_url": "...", "caption": "..." }, ...]
+STATE_PATH = ".posted_state.json"      # matches the workflow's commit step
 
 CREATE_POST_MUTATION = """
 mutation CreatePost($input: CreatePostInput!) {
@@ -45,7 +47,8 @@ def load_next_item():
 
     if os.path.exists(STATE_PATH):
         with open(STATE_PATH, "r") as f:
-            idx = int(f.read().strip() or "0")
+            state = json.load(f)
+            idx = state.get("next_index", 0)
     else:
         idx = 0
 
@@ -57,9 +60,9 @@ def load_next_item():
 
 
 def post_to_buffer(image_url, caption):
-    api_key = os.environ.get("BUFFER_API_KEY")
+    api_key = os.environ.get("MY_BOOK_API_KEY")
     if not api_key:
-        raise RuntimeError("BUFFER_API_KEY environment variable is not set.")
+        raise RuntimeError("MY_BOOK_API_KEY environment variable is not set.")
 
     variables = {
         "input": {
@@ -101,7 +104,7 @@ def main():
     post_to_buffer(item["image_url"], item["caption"])
 
     with open(STATE_PATH, "w") as f:
-        f.write(str(idx + 1))
+        json.dump({"next_index": idx + 1}, f)
 
 
 if __name__ == "__main__":
