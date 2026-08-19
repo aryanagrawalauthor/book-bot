@@ -3,7 +3,7 @@ name: Post to Buffer
 on:
   schedule:
     - cron: "0 9 * * *"   # 9:00 AM UTC daily — adjust as you like
-  workflow_dispatch: {}
+  workflow_dispatch: {}     # lets you manually trigger it from GitHub's Actions tab too
 
 jobs:
   post:
@@ -20,7 +20,7 @@ jobs:
       - run: python scripts/post_to_buffer.py
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
-          BUFFER_PROFILE_ID: ${{ secrets.BUFFER_PROFILE_ID }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
 
       - name: Commit updated state
         run: |
