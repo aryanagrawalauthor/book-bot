@@ -29,11 +29,23 @@ CREATE_POST_MUTATION = """
 mutation CreatePost($input: CreatePostInput!) {
   createPost(input: $input) {
     __typename
-    ... on Post {
-      id
-      status
+    ... on PostActionSuccess {
+      post {
+        id
+        status
+        dueAt
+      }
     }
     ... on InvalidInputError {
+      message
+    }
+    ... on LimitReachedError {
+      message
+    }
+    ... on UnauthorizedError {
+      message
+    }
+    ... on UnexpectedError {
       message
     }
   }
@@ -73,6 +85,12 @@ def post_to_buffer(image_url, caption):
             "assets": [
                 {"image": {"url": image_url}}
             ],
+            "metadata": {
+                "instagram": {
+                    "type": "post",             # required: post, story, or reel
+                    "shouldShareToFeed": True   # required for Instagram posts
+                }
+            },
         }
     }
 
@@ -92,11 +110,15 @@ def post_to_buffer(image_url, caption):
         raise RuntimeError(f"Buffer API returned errors: {data['errors']}")
 
     result = data["data"]["createPost"]
-    if result.get("__typename") == "InvalidInputError":
-        raise RuntimeError(f"Invalid input: {result.get('message')}")
+    typename = result.get("__typename")
 
-    print(f"Posted successfully: {result}")
-    return result
+    if typename == "PostActionSuccess":
+        post = result["post"]
+        print(f"Posted successfully: id={post['id']} status={post['status']} dueAt={post.get('dueAt')}")
+        return post
+
+    # Any error variant (InvalidInputError, LimitReachedError, UnauthorizedError, UnexpectedError)
+    raise RuntimeError(f"Buffer rejected the post ({typename}): {result.get('message')}")
 
 
 def main():
