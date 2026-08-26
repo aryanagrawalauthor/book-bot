@@ -1,0 +1,29 @@
+name: Generate Reels
+
+on:
+  workflow_dispatch: {}   # manual trigger only, for now
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg and fonts
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu
+
+      - run: pip install requests
+
+      - run: python scripts/generate_reel.py
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+
+      - name: Upload generated reels as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reels
+          path: reels/*.mp4
