@@ -1,7 +1,7 @@
 """
 Posts one quote-poster to Instagram via Buffer's CURRENT GraphQL API.
 (The old REST API at api.bufferapp.com/1/... is closed to new developers
- -- that's what caused the 401 error. This uses https://api.buffer.com instead.)
+ -- that's what caused the 401 error. This uses https://graph.buffer.com/graphql.)
 
 Reads a manifest.json (list of {image_url, caption}) and a state file
 (posted_index.txt) to know which quote to post next each time this runs.
@@ -16,7 +16,7 @@ import sys
 import json
 import requests
 
-API_URL = "https://api.buffer.com"
+API_URL = "https://graph.buffer.com/graphql"
 ORGANIZATION_ID = "6a8458d6c58a52fcf4e3ba30"   # "My Organization"
 # Channel ID comes from the BUFFER_CHANNEL_ID secret (set in the workflow env).
 # Falls back to your Instagram channel (aryn.agrawal) if that secret isn't set.
