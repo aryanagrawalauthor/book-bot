@@ -1,7 +1,5 @@
 """
-Posts one quote-poster to Instagram via Buffer's CURRENT GraphQL API.
-(The old REST API at api.bufferapp.com/1/... is closed to new developers
- -- that's what caused the 401 error. This uses https://graph.buffer.com/graphql.)
+Posts one quote-poster to Instagram via Buffer's GraphQL API.
 
 Reads a manifest.json (list of {image_url, caption}) and a state file
 (posted_index.txt) to know which quote to post next each time this runs.
@@ -16,7 +14,7 @@ import sys
 import json
 import requests
 
-API_URL = "https://graph.buffer.com/graphql"
+API_URL = "https://api.buffer.com"
 ORGANIZATION_ID = "6a8458d6c58a52fcf4e3ba30"   # "My Organization"
 # Channel ID comes from the BUFFER_CHANNEL_ID secret (set in the workflow env).
 # Falls back to your Instagram channel (aryn.agrawal) if that secret isn't set.
@@ -76,6 +74,10 @@ def post_to_buffer(image_url, caption):
     if not api_key:
         raise RuntimeError("MY_BOOK_API_KEY environment variable is not set.")
 
+    # Debug aid: confirms the key reached the script and roughly what it looks like,
+    # without printing the actual secret value into the logs.
+    print(f"Using API key: {'set' if api_key else 'MISSING'} (length={len(api_key)})")
+
     variables = {
         "input": {
             "channelId": CHANNEL_ID,
@@ -103,6 +105,13 @@ def post_to_buffer(image_url, caption):
         json={"query": CREATE_POST_MUTATION, "variables": variables},
         timeout=30,
     )
+
+    # Print status + body on failure before raising, so the Actions log shows
+    # Buffer's actual error message instead of just "401 Unauthorized".
+    if not resp.ok:
+        print(f"Buffer responded with status {resp.status_code}")
+        print(f"Response body: {resp.text}")
+
     resp.raise_for_status()
     data = resp.json()
 
